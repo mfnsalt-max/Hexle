@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hexle</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --text-color: #ffffff;
+            --container-bg: #1e1e1e;
+            --tile-border: #3a3a3c;
+            --tile-filled: #565758;
+            --key-bg: #818384;
+            --key-text: #ffffff;
+            --key-hover: #929596;
+            --modal-bg: #121212;
+            --modal-border: #3a3a3c;
+            --icon-color: #aaaaaa;
+            --hr-color: #3a3a3c;
+        }
+
+        body.light-mode {
+            --bg-color: #ffffff;
+            --text-color: #121212;
+            --container-bg: #f8f8f8;
+            --tile-border: #d3d6da;
+            --tile-filled: #878a8c;
+            --key-bg: #d3d6da;
+            --key-text: #121212;
+            --key-hover: #c3c6ca;
+            --modal-bg: #ffffff;
+            --modal-border: #d3d6da;
+            --icon-color: #555555;
+            --hr-color: #d3d6da;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+            border-bottom: 1px solid var(--hr-color);
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            transition: border-color 0.3s;
+        }
+
+        h1 {
+            margin: 0;
+            letter-spacing: 2px;
+            font-size: 2rem;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--icon-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s;
+            padding: 5px;
+        }
+        
+        .icon-btn:hover {
+            color: var(--text-color);
+        }
+
+        .basic-instructions {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: var(--icon-color);
+            font-size: 0.85rem;
+            text-align: center;
+            max-width: 90%;
+            line-height: 1.4;
+        }
+
+        /* The color the user is trying to guess */
+        #target-color-box {
+            width: 130px;
+            height: 130px;
+            border-radius: 16px;
+            border: 3px solid var(--modal-border);
+            margin: 10px 0 20px 0;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease, border-color 0.3s;
+        }
+
+        /* --- WORDLE UI STYLES --- */
+        #board {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 25px;
+            width: 100%;
+            max-width: 400px;
+            align-items: center;
+        }
+
+        .row-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .board-row {
+            display: flex;
+            gap: 5px;
+        }
+
+        .tile {
+            width: 42px;
+            height: 42px;
+            border: 2px solid var(--tile-border);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.6rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: var(--text-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            transition: border-color 0.2s, color 0.2s;
+        }
+
+        .tile.filled { border-color: var(--tile-filled); }
+
+        /* --- NEW: GUESS INFO (Swatch & Accuracy) --- */
+        .guess-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 45px;
+        }
+
+        .row-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid var(--tile-border);
+            background-color: var(--container-bg); /* Default empty grey */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            transition: background-color 0.4s ease;
+        }
+
+        .row-accuracy {
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-top: 4px;
+            font-family: sans-serif;
+            letter-spacing: 0.5px;
+            color: var(--icon-color); /* Default grey text */
+            transition: color 0.4s ease;
+        }
+
+        /* --- KEYBOARD STYLES --- */
+        #keyboard {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .kb-row {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .key {
+            background-color: var(--key-bg);
+            color: var(--key-text);
+            border: none;
+            border-radius: 4px;
+            padding: 15px 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            flex: 1;
+            max-width: 45px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            transition: background-color 0.2s, color 0.2s;
+            position: relative;
+        }
+
+        .key.wide {
+            max-width: 80px;
+            font-size: 0.9rem;
+        }
+
+        .key:hover { background-color: var(--key-hover); }
+        .key:active { transform: scale(0.95); }
+
+        .correct { background-color: #538d4e !important; border-color: #538d4e !important; color: white !important; }
+        .present { background-color: #b59f3b !important; border-color: #b59f3b !important; color: white !important; }
+        .absent { background-color: #3a3a3c !important; border-color: #3a3a3c !important; color: white !important; }
+        .acc-high { color: #538d4e; }
+        .acc-med { color: #b59f3b; }
+        .acc-low { color: #ff6b6b; }
+
+        /* MULTIPLIER BADGE */
+        .multi-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background-color: #339af0;
+            color: #ffffff;
+            font-size: 0.65rem;
+            font-weight: bold;
+            padding: 2px 5px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 10;
+        }
+
+        /* --- ANIMATIONS --- */
+        .flip-in { animation: flipIn 0.25s ease-in forwards; }
+        .flip-out { animation: flipOut 0.25s ease-out forwards; }
+        @keyframes flipIn { 0% { transform: rotateX(0deg); } 100% { transform: rotateX(-90deg); } }
+        @keyframes flipOut { 0% { transform: rotateX(-90deg); } 100% { transform: rotateX(0deg); } }
+        
+        .shake { animation: shake 0.5s; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+
+        /* --- TOAST NOTIFICATIONS & MODAL --- */
+        #toast-container {
+            position: fixed; top: 10%; left: 50%; transform: translateX(-50%);
+            z-index: 1000; display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+        }
+        
+        .toast {
+            background-color: var(--text-color); color: var(--bg-color); padding: 14px 20px;
+            border-radius: 4px; font-weight: bold; opacity: 1; 
+            transition: opacity 0.5s; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: none; justify-content: center; 
+            align-items: center; z-index: 2000;
+        }
+
+        .modal-content {
+            background-color: var(--modal-bg); border: 1px solid var(--modal-border);
+            border-radius: 8px; padding: 30px; text-align: center;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.8); color: var(--text-color);
+            width: 90%; max-width: 380px; animation: popIn 0.3s ease-out;
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+            transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .close-btn {
+            position: absolute; top: 15px; right: 15px; background: none; border: none;
+            color: var(--icon-color); font-size: 1.2rem; cursor: pointer; transition: color 0.2s;
+        }
+        
+        .close-btn:hover { color: var(--text-color); }
+
+        /* Stats Styles */
+        .stats-container { display: flex; justify-content: space-between; gap: 10px; margin: 20px 0; }
+        .stat-box { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .stat-num { font-size: 1.8rem; font-weight: bold; }
+        .stat-label { font-size: 0.75rem; text-align: center; line-height: 1.2; }
+        
+        .guess-distribution { width: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+        .dist-row { display: flex; align-items: center; font-size: 0.9rem; }
+        .dist-num { width: 20px; text-align: right; margin-right: 8px; font-weight: bold; }
+        .dist-bar-container { flex: 1; display: flex; }
+        .dist-bar { background-color: var(--tile-border); color: var(--text-color); padding: 2px 8px; text-align: right; font-weight: bold; min-width: 15px; display: flex; justify-content: flex-end; align-items: center; transition: background-color 0.3s; }
+        .dist-bar.highlight { background-color: #538d4e; color: white; }
+
+        hr { border: none; border-top: 1px solid var(--hr-color); transition: border-color 0.3s; }
+
+        #modal-title { margin-top: 0; font-size: 1.8rem; }
+        .modal-swatch { width: 80px; height: 80px; margin: 15px auto; border-radius: 8px; border: 2px solid var(--icon-color); }
+        
+        #modal-play-again {
+            background-color: #538d4e; color: white; border: none;
+            padding: 15px 30px; font-size: 1.2rem; font-weight: bold;
+            border-radius: 4px; cursor: pointer; width: 100%; margin-top: 5px;
+            transition: background-color 0.2s;
+        }
+        
+        #modal-play-again:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <button id="info-btn" class="icon-btn"><img src="https://codehs.com/uploads/d3fb1d893599fa38187cc25a264ac448" alt="Information Link" width="25" height="25"></button>
+        <h1>HEXLE</h1>
+        <button id="theme-btn" class="icon-btn">☀️</button>
+    </header>
+
+    <p class="basic-instructions">
+        Guess the 6-character Hex Code in 8 tries.<br>
+        Pay attention to your <b>Accuracy Score</b> to see how close your color is!
+    </p>
+
+    <div id="target-color-box"></div>
+
+    <div id="board"></div>
+    <div id="keyboard"></div>
+
+    <div id="toast-container"></div>
+
+    <!-- INFO MODAL -->
+    <div id="info-modal" class="modal-overlay">
+        <div class="modal-content" style="text-align: left;">
+            <button class="close-btn" id="close-info-btn">✖</button>
+            <h2 style="text-align: center; margin-top: 0;">How to Play</h2>
+            <p>Guess the 6-character Hex Code in 8 tries.</p>
+            <div class="board-row" style="justify-content: center; margin: 15px 0;">
+                <div class="tile correct" style="width: 35px; height: 35px; font-size: 1.2rem; border: none;">F</div>
+                <div class="tile present" style="width: 35px; height: 35px; font-size: 1.2rem; border: none;">A</div>
+                <div class="tile absent" style="width: 35px; height: 35px; font-size: 1.2rem; border: none;">3</div>
+            </div>
+            <ul style="padding-left: 20px; font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">
+                <li>🟩 <b>Green:</b> Correct character & spot.</li>
+                <li>🟨 <b>Yellow:</b> Character is in the code, wrong spot.</li>
+                <li>⬛ <b>Gray:</b> Character is not in the code.</li>
+                <li>🔢 <b>Blue Badge:</b> That character appears multiple times!</li>
+                <li>🎯 <b>Accuracy Score:</b> A percentage showing how close your guess's RGB values are to the target color. 100% means you nailed it!</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- STATS MODAL -->
+    <div id="stats-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="close-btn" id="close-stats-btn">✖</button>
+            <h2 id="modal-title"></h2>
+            
+            <div class="stats-container">
+                <div class="stat-box"><div class="stat-num" id="stat-played">0</div><div class="stat-label">Played</div></div>
+                <div class="stat-box"><div class="stat-num" id="stat-winpct">0</div><div class="stat-label">Win %</div></div>
+                <div class="stat-box"><div class="stat-num" id="stat-avgacc">0%</div><div class="stat-label">Avg<br>Accuracy</div></div>
+                <div class="stat-box"><div class="stat-num" id="stat-streak">0</div><div class="stat-label">Current<br>Streak</div></div>
+            </div>
+
+            <h3 style="margin-bottom: 5px; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px;">Guess Distribution</h3>
+            <div class="guess-distribution" id="guess-distribution">
+                <!-- Bars injected by JS -->
+            </div>
+
+            <hr style="margin: 20px 0;">
+            <p id="modal-message" style="margin-top: 0; font-weight: bold;"></p>
+            <div id="modal-swatch" class="modal-swatch"></div>
+            <button id="modal-play-again">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // --- GAME STATE ---
+        let targetHex = "";
+        let gameOver = false;
+        let isAnimating = false;
+        const maxGuesses = 8;
+        let currentRow = 0;
+        let currentGuess = "";
+        
+        let stats = JSON.parse(localStorage.getItem('hexleStatsV2')) || {
+            played: 0,
+            won: 0,
+            currentStreak: 0,
+            maxStreak: 0,
+            distribution: new Array(maxGuesses).fill(0),
+            totalAccuracy: 0
+        };
+
+        // --- UTILITY FUNCTIONS ---
+
+        function randomHexChannel() {
+            const hex = Math.floor(Math.random() * 256).toString(16).toUpperCase();
+            return hex.length === 1 ? "0" + hex : hex;
+        }
+
+        // Convert hex to RGB object for math
+        function hexToRgb(hex) {
+            return {
+                r: parseInt(hex.substring(0, 2), 16),
+                g: parseInt(hex.substring(2, 4), 16),
+                b: parseInt(hex.substring(4, 6), 16)
+            };
+        }
+
+        // Calculate accuracy percentage based on total RGB distance
+        // Max possible difference is 255 * 3 = 765
+        function calculateAccuracy(guessHex, targetHex) {
+            const g = hexToRgb(guessHex);
+            const t = hexToRgb(targetHex);
+            const totalDiff = Math.abs(g.r - t.r) + Math.abs(g.g - t.g) + Math.abs(g.b - t.b);
+            const percent = 100 - ((totalDiff / 765) * 100);
+            return percent;
+        }
+
+        // --- UI INITIALIZATION ---
+
+        function buildBoard() {
+            const board = document.getElementById("board");
+            board.innerHTML = "";
+            for (let i = 0; i < maxGuesses; i++) {
+                const wrapper = document.createElement("div");
+                wrapper.className = "row-wrapper";
+                wrapper.id = `row-${i}`;
+
+                const row = document.createElement("div");
+                row.className = "board-row";
+                
+                for (let j = 0; j < 6; j++) {
+                    const tile = document.createElement("div");
+                    tile.className = "tile";
+                    tile.id = `tile-${i}-${j}`;
+                    row.appendChild(tile);
+                }
+
+                // New Accuracy & Swatch Info Panel (Always visible, starts empty)
+                const info = document.createElement("div");
+                info.className = "guess-info";
+                info.id = `info-${i}`;
+                info.innerHTML = `
+                    <div class="row-swatch" id="swatch-${i}"></div>
+                    <div class="row-accuracy" id="acc-${i}">--%</div>
+                `;
+
+                wrapper.appendChild(row);
+                wrapper.appendChild(info);
+                board.appendChild(wrapper);
+            }
+        }
+
+        function buildKeyboard() {
+            const kb = document.getElementById("keyboard");
+            kb.innerHTML = "";
+            const keys = [
+                ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+                ['A', 'B', 'C', 'D', 'E', 'F'],
+                ['ENTER', 'BACKSPACE']
+            ];
+
+            keys.forEach(row => {
+                const rowEl = document.createElement("div");
+                rowEl.className = "kb-row";
+                row.forEach(key => {
+                    const btn = document.createElement("button");
+                    btn.className = "key";
+                    btn.id = `key-${key}`;
+                    
+                    if (key === 'ENTER' || key === 'BACKSPACE') {
+                        btn.classList.add("wide");
+                        btn.textContent = key === 'BACKSPACE' ? '⌫' : key;
+                    } else {
+                        btn.textContent = key;
+                        const badge = document.createElement("span");
+                        badge.className = "multi-badge";
+                        badge.id = `badge-${key}`;
+                        btn.appendChild(badge);
+                    }
+                    
+                    btn.onclick = () => handleKey(key);
+                    rowEl.appendChild(btn);
+                });
+                kb.appendChild(rowEl);
+            });
+        }
+
+        // --- CORE LOGIC ---
+
+        function initGame() {
+            targetHex = randomHexChannel() + randomHexChannel() + randomHexChannel();
+            document.getElementById("target-color-box").style.backgroundColor = "#" + targetHex;
+            
+            document.getElementById("stats-modal").style.display = "none";
+            document.getElementById("info-modal").style.display = "none";
+            document.getElementById("toast-container").innerHTML = "";
+            
+            gameOver = false;
+            isAnimating = false;
+            currentRow = 0;
+            currentGuess = "";
+
+            buildBoard();
+            buildKeyboard();
+        }
+
+        function updateGridUI() {
+            for (let i = 0; i < 6; i++) {
+                const tile = document.getElementById(`tile-${currentRow}-${i}`);
+                if (tile) {
+                    tile.textContent = currentGuess[i] || "";
+                    if (currentGuess[i]) {
+                        tile.classList.add("filled");
+                    } else {
+                        tile.classList.remove("filled");
+                    }
+                }
+            }
+        }
+
+        function showMessage(msg, time = 2000) {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = "toast";
+            toast.innerText = msg;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = "0";
+                setTimeout(() => toast.remove(), 500);
+            }, time);
+        }
+
+        function shakeRow(rowIndex) {
+            const row = document.getElementById(`row-${rowIndex}`);
+            row.classList.remove("shake");
+            void row.offsetWidth; // trigger reflow
+            row.classList.add("shake");
+        }
+
+        function handleKey(key) {
+            if (gameOver || isAnimating) return;
+
+            if (key === 'BACKSPACE') {
+                currentGuess = currentGuess.slice(0, -1);
+                updateGridUI();
+                return;
+            }
+
+            if (key === 'ENTER') {
+                submitGuess();
+                return;
+            }
+
+            if (currentGuess.length < 6 && /^[0-9A-F]$/.test(key)) {
+                currentGuess += key;
+                updateGridUI();
+            }
+        }
+
+        function updateKeyboardColor(keyChar, status) {
+            const keyBtn = document.getElementById(`key-${keyChar}`);
+            if (!keyBtn) return;
+            
+            if (status === 'correct' || status === 'present') {
+                const countInTarget = targetHex.split('').filter(char => char === keyChar).length;
+                if (countInTarget > 1) {
+                    const badge = document.getElementById(`badge-${keyChar}`);
+                    if (badge) {
+                        badge.textContent = `x${countInTarget}`;
+                        badge.style.display = 'block';
+                    }
+                }
+            }
+            
+            if (keyBtn.classList.contains('correct')) return; 
+            if (keyBtn.classList.contains('present') && status === 'absent') return; 
+
+            keyBtn.classList.remove('present', 'absent', 'correct');
+            keyBtn.classList.add(status);
+        }
+
+        function submitGuess() {
+            if (currentGuess.length < 6) {
+                shakeRow(currentRow);
+                showMessage("Not enough characters");
+                return;
+            }
+
+            let targetArr = targetHex.split('');
+            let guessArr = currentGuess.split('');
+            let feedback = new Array(6).fill('absent');
+            let targetLetterCounts = {};
+
+            for (let i = 0; i < 6; i++) {
+                targetLetterCounts[targetArr[i]] = (targetLetterCounts[targetArr[i]] || 0) + 1;
+            }
+
+            // Pass 1: Correct (Green)
+            for (let i = 0; i < 6; i++) {
+                if (guessArr[i] === targetArr[i]) {
+                    feedback[i] = 'correct';
+                    targetLetterCounts[guessArr[i]]--;
+                }
+            }
+
+            // Pass 2: Present (Yellow)
+            for (let i = 0; i < 6; i++) {
+                if (feedback[i] !== 'correct' && targetLetterCounts[guessArr[i]] > 0) {
+                    feedback[i] = 'present';
+                    targetLetterCounts[guessArr[i]]--;
+                }
+            }
+
+            isAnimating = true;
+            const flipDuration = 250;
+            const staggerDelay = 300;
+
+            // Apply flip animations sequentially
+            for (let i = 0; i < 6; i++) {
+                setTimeout(() => {
+                    const tile = document.getElementById(`tile-${currentRow}-${i}`);
+                    tile.classList.add("flip-in");
+
+                    setTimeout(() => {
+                        tile.classList.remove("flip-in");
+                        tile.classList.add(feedback[i]);
+                        tile.classList.add("flip-out");
+                        tile.style.border = "none"; 
+                        updateKeyboardColor(guessArr[i], feedback[i]);
+
+                        setTimeout(() => {
+                            tile.classList.remove("flip-out");
+                        }, flipDuration);
+                    }, flipDuration);
+                }, i * staggerDelay);
+            }
+
+            // After animations finish, reveal Accuracy Score and check Win/Loss
+            setTimeout(() => {
+                isAnimating = false;
+                
+                // Reveal Accuracy & Swatch
+                const accuracy = calculateAccuracy(currentGuess, targetHex);
+                const swatch = document.getElementById(`swatch-${currentRow}`);
+                const accText = document.getElementById(`acc-${currentRow}`);
+                
+                swatch.style.backgroundColor = `#${currentGuess}`;
+                accText.innerText = `${accuracy.toFixed(1)}%`;
+                
+                if (accuracy > 90) accText.className = "row-accuracy acc-high";
+                else if (accuracy > 70) accText.className = "row-accuracy acc-med";
+                else accText.className = "row-accuracy acc-low";
+
+                // Win/Loss Check
+                if (currentGuess === targetHex) {
+                    endGame(true, accuracy);
+                } else if (currentRow >= maxGuesses - 1) {
+                    endGame(false, accuracy);
+                } else {
+                    currentRow++;
+                    currentGuess = "";
+                }
+            }, (6 * staggerDelay) + flipDuration + 100);
+        }
+
+        function renderStats(win) {
+            document.getElementById("stat-played").innerText = stats.played;
+            document.getElementById("stat-winpct").innerText = stats.played > 0 ? Math.round((stats.won / stats.played) * 100) + "%" : "0%";
+            
+            const avgAcc = stats.played > 0 ? (stats.totalAccuracy / stats.played).toFixed(1) : 0;
+            document.getElementById("stat-avgacc").innerText = `${avgAcc}%`;
+            document.getElementById("stat-streak").innerText = stats.currentStreak;
+
+            const distContainer = document.getElementById("guess-distribution");
+            distContainer.innerHTML = "";
+            
+            const maxDist = Math.max(...stats.distribution, 1);
+
+            for (let i = 0; i < maxGuesses; i++) {
+                const count = stats.distribution[i];
+                const widthPct = Math.max((count / maxDist) * 100, 7); 
+                
+                const row = document.createElement("div");
+                row.className = "dist-row";
+                
+                let highlightClass = (win && i === currentRow) ? "highlight" : "";
+                
+                row.innerHTML = `
+                    <div class="dist-num">${i + 1}</div>
+                    <div class="dist-bar-container">
+                        <div class="dist-bar ${highlightClass}" style="width: ${widthPct}%;">${count}</div>
+                    </div>
+                `;
+                distContainer.appendChild(row);
+            }
+
+            const titleEl = document.getElementById("modal-title");
+            const msgEl = document.getElementById("modal-message");
+
+            if (win) {
+                titleEl.innerText = "Splendid!";
+                msgEl.innerText = `You found the color!`;
+            } else {
+                titleEl.innerText = "Game Over";
+                msgEl.innerText = `The exact color was #${targetHex}`;
+            }
+        }
+
+        function endGame(win, finalAccuracy) {
+            gameOver = true;
+            
+            stats.played++;
+            stats.totalAccuracy += finalAccuracy; // Add to running total for average calculation
+
+            if (win) {
+                stats.won++;
+                stats.currentStreak++;
+                stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
+                stats.distribution[currentRow]++;
+            } else {
+                stats.currentStreak = 0;
+            }
+            
+            localStorage.setItem('hexleStatsV2', JSON.stringify(stats));
+
+            setTimeout(() => {
+                document.getElementById("stats-modal").style.display = "flex";
+                document.getElementById("modal-swatch").style.backgroundColor = "#" + targetHex;
+                renderStats(win);
+            }, 800); 
+        }
+
+        // --- EVENT LISTENERS ---
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            
+            const key = e.key.toUpperCase();
+            if (key === 'ENTER') {
+                handleKey('ENTER');
+            } else if (key === 'BACKSPACE' || key === 'DELETE') {
+                handleKey('BACKSPACE');
+            } else if (/^[0-9A-F]$/.test(key)) {
+                handleKey(key);
+            }
+        });
+
+        document.getElementById("modal-play-again").addEventListener("click", initGame);
+        
+        document.getElementById("info-btn").addEventListener("click", () => {
+            document.getElementById("info-modal").style.display = "flex";
+        });
+        
+        document.getElementById("close-info-btn").addEventListener("click", () => {
+            document.getElementById("info-modal").style.display = "none";
+        });
+        
+        document.getElementById("close-stats-btn").addEventListener("click", () => {
+            document.getElementById("stats-modal").style.display = "none";
+        });
+
+        // Theme Toggle Logic
+        const themeBtn = document.getElementById("theme-btn");
+        const savedTheme = localStorage.getItem("hexleTheme") || "dark";
+        if (savedTheme === "light") {
+            document.body.classList.add("light-mode");
+            themeBtn.innerText = "🌙";
+        }
+
+        themeBtn.addEventListener("click", () => {
+            document.body.classList.toggle("light-mode");
+            if (document.body.classList.contains("light-mode")) {
+                themeBtn.innerText = "🌙";
+                localStorage.setItem("hexleTheme", "light");
+            } else {
+                themeBtn.innerText = "☀️";
+                localStorage.setItem("hexleTheme", "dark");
+            }
+        });
+
+        // Start game on load
+        window.onload = initGame;
+    </script>
+</body>
+</html>
