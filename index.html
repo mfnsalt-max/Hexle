@@ -91,7 +91,6 @@
             line-height: 1.4;
         }
 
-        /* The color the user is trying to guess */
         #target-color-box {
             width: 130px;
             height: 130px;
@@ -102,7 +101,6 @@
             transition: transform 0.3s ease, border-color 0.3s;
         }
 
-        /* --- WORDLE UI STYLES --- */
         #board {
             display: flex;
             flex-direction: column;
@@ -144,7 +142,6 @@
 
         .tile.filled { border-color: var(--tile-filled); }
 
-        /* --- NEW: GUESS INFO (Swatch & Accuracy) --- */
         .guess-info {
             display: flex;
             flex-direction: column;
@@ -158,7 +155,7 @@
             height: 28px;
             border-radius: 50%;
             border: 2px solid var(--tile-border);
-            background-color: var(--container-bg); /* Default empty grey */
+            background-color: var(--container-bg);
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
             transition: background-color 0.4s ease;
         }
@@ -169,11 +166,10 @@
             margin-top: 4px;
             font-family: sans-serif;
             letter-spacing: 0.5px;
-            color: var(--icon-color); /* Default grey text */
+            color: var(--icon-color);
             transition: color 0.4s ease;
         }
 
-        /* --- KEYBOARD STYLES --- */
         #keyboard {
             display: flex;
             flex-direction: column;
@@ -223,7 +219,6 @@
         .acc-med { color: #b59f3b; }
         .acc-low { color: #ff6b6b; }
 
-        /* MULTIPLIER BADGE */
         .multi-badge {
             position: absolute;
             top: -6px;
@@ -239,7 +234,6 @@
             z-index: 10;
         }
 
-        /* --- ANIMATIONS --- */
         .flip-in { animation: flipIn 0.25s ease-in forwards; }
         .flip-out { animation: flipOut 0.25s ease-out forwards; }
         @keyframes flipIn { 0% { transform: rotateX(0deg); } 100% { transform: rotateX(-90deg); } }
@@ -252,7 +246,6 @@
             40%, 80% { transform: translateX(5px); }
         }
 
-        /* --- TOAST NOTIFICATIONS & MODAL --- */
         #toast-container {
             position: fixed; top: 10%; left: 50%; transform: translateX(-50%);
             z-index: 1000; display: flex; flex-direction: column; gap: 10px; pointer-events: none;
@@ -293,7 +286,6 @@
         
         .close-btn:hover { color: var(--text-color); }
 
-        /* Stats Styles */
         .stats-container { display: flex; justify-content: space-between; gap: 10px; margin: 20px 0; }
         .stat-box { display: flex; flex-direction: column; align-items: center; flex: 1; }
         .stat-num { font-size: 1.8rem; font-weight: bold; }
@@ -324,7 +316,7 @@
 <body>
 
     <header>
-        <button id="info-btn" class="icon-btn"><img src="https://codehs.com/uploads/d3fb1d893599fa38187cc25a264ac448" alt="Information Link" width="25" height="25"></button>
+        <button id="info-btn" class="icon-btn">ℹ️</button>
         <h1>HEXLE</h1>
         <button id="theme-btn" class="icon-btn">☀️</button>
     </header>
@@ -357,7 +349,7 @@
                 <li>🟨 <b>Yellow:</b> Character is in the code, wrong spot.</li>
                 <li>⬛ <b>Gray:</b> Character is not in the code.</li>
                 <li>🔢 <b>Blue Badge:</b> That character appears multiple times!</li>
-                <li>🎯 <b>Accuracy Score:</b> A percentage showing how close your guess's RGB values are to the target color. 100% means you nailed it!</li>
+                <li>🎯 <b>Accuracy Score:</b> A percentage showing how close your guess's RGB values are to the target color.</li>
             </ul>
         </div>
     </div>
@@ -371,7 +363,7 @@
             <div class="stats-container">
                 <div class="stat-box"><div class="stat-num" id="stat-played">0</div><div class="stat-label">Played</div></div>
                 <div class="stat-box"><div class="stat-num" id="stat-winpct">0</div><div class="stat-label">Win %</div></div>
-                <div class="stat-box"><div class="stat-num" id="stat-avgacc">0%</div><div class="stat-label">Avg<br>Accuracy</div></div>
+                <div class="stat-box"><div class="stat-num" id="stat-game-acc" style="color: #538d4e;">0%</div><div class="stat-label">Game<br>Avg Acc</div></div>
                 <div class="stat-box"><div class="stat-num" id="stat-streak">0</div><div class="stat-label">Current<br>Streak</div></div>
             </div>
 
@@ -395,6 +387,7 @@
         const maxGuesses = 8;
         let currentRow = 0;
         let currentGuess = "";
+        let sessionAccuracies = []; // Track accuracies for the current game session
         
         let stats = JSON.parse(localStorage.getItem('hexleStatsV2')) || {
             played: 0,
@@ -406,13 +399,11 @@
         };
 
         // --- UTILITY FUNCTIONS ---
-
         function randomHexChannel() {
             const hex = Math.floor(Math.random() * 256).toString(16).toUpperCase();
             return hex.length === 1 ? "0" + hex : hex;
         }
 
-        // Convert hex to RGB object for math
         function hexToRgb(hex) {
             return {
                 r: parseInt(hex.substring(0, 2), 16),
@@ -421,8 +412,6 @@
             };
         }
 
-        // Calculate accuracy percentage based on total RGB distance
-        // Max possible difference is 255 * 3 = 765
         function calculateAccuracy(guessHex, targetHex) {
             const g = hexToRgb(guessHex);
             const t = hexToRgb(targetHex);
@@ -432,7 +421,6 @@
         }
 
         // --- UI INITIALIZATION ---
-
         function buildBoard() {
             const board = document.getElementById("board");
             board.innerHTML = "";
@@ -451,7 +439,6 @@
                     row.appendChild(tile);
                 }
 
-                // New Accuracy & Swatch Info Panel (Always visible, starts empty)
                 const info = document.createElement("div");
                 info.className = "guess-info";
                 info.id = `info-${i}`;
@@ -502,7 +489,6 @@
         }
 
         // --- CORE LOGIC ---
-
         function initGame() {
             targetHex = randomHexChannel() + randomHexChannel() + randomHexChannel();
             document.getElementById("target-color-box").style.backgroundColor = "#" + targetHex;
@@ -515,6 +501,7 @@
             isAnimating = false;
             currentRow = 0;
             currentGuess = "";
+            sessionAccuracies = []; // Reset current game accuracy tracker
 
             buildBoard();
             buildKeyboard();
@@ -550,7 +537,7 @@
         function shakeRow(rowIndex) {
             const row = document.getElementById(`row-${rowIndex}`);
             row.classList.remove("shake");
-            void row.offsetWidth; // trigger reflow
+            void row.offsetWidth; 
             row.classList.add("shake");
         }
 
@@ -612,7 +599,6 @@
                 targetLetterCounts[targetArr[i]] = (targetLetterCounts[targetArr[i]] || 0) + 1;
             }
 
-            // Pass 1: Correct (Green)
             for (let i = 0; i < 6; i++) {
                 if (guessArr[i] === targetArr[i]) {
                     feedback[i] = 'correct';
@@ -620,7 +606,6 @@
                 }
             }
 
-            // Pass 2: Present (Yellow)
             for (let i = 0; i < 6; i++) {
                 if (feedback[i] !== 'correct' && targetLetterCounts[guessArr[i]] > 0) {
                     feedback[i] = 'present';
@@ -632,7 +617,6 @@
             const flipDuration = 250;
             const staggerDelay = 300;
 
-            // Apply flip animations sequentially
             for (let i = 0; i < 6; i++) {
                 setTimeout(() => {
                     const tile = document.getElementById(`tile-${currentRow}-${i}`);
@@ -652,12 +636,12 @@
                 }, i * staggerDelay);
             }
 
-            // After animations finish, reveal Accuracy Score and check Win/Loss
             setTimeout(() => {
                 isAnimating = false;
                 
-                // Reveal Accuracy & Swatch
                 const accuracy = calculateAccuracy(currentGuess, targetHex);
+                sessionAccuracies.push(accuracy); // Track this guess for average
+
                 const swatch = document.getElementById(`swatch-${currentRow}`);
                 const accText = document.getElementById(`acc-${currentRow}`);
                 
@@ -668,11 +652,10 @@
                 else if (accuracy > 70) accText.className = "row-accuracy acc-med";
                 else accText.className = "row-accuracy acc-low";
 
-                // Win/Loss Check
                 if (currentGuess === targetHex) {
-                    endGame(true, accuracy);
+                    endGame(true);
                 } else if (currentRow >= maxGuesses - 1) {
-                    endGame(false, accuracy);
+                    endGame(false);
                 } else {
                     currentRow++;
                     currentGuess = "";
@@ -684,8 +667,11 @@
             document.getElementById("stat-played").innerText = stats.played;
             document.getElementById("stat-winpct").innerText = stats.played > 0 ? Math.round((stats.won / stats.played) * 100) + "%" : "0%";
             
-            const avgAcc = stats.played > 0 ? (stats.totalAccuracy / stats.played).toFixed(1) : 0;
-            document.getElementById("stat-avgacc").innerText = `${avgAcc}%`;
+            // Calculate and show Average Accuracy for just THIS game
+            const sum = sessionAccuracies.reduce((a, b) => a + b, 0);
+            const gameAvg = sum / sessionAccuracies.length;
+            document.getElementById("stat-game-acc").innerText = `${gameAvg.toFixed(1)}%`;
+            
             document.getElementById("stat-streak").innerText = stats.currentStreak;
 
             const distContainer = document.getElementById("guess-distribution");
@@ -716,18 +702,20 @@
 
             if (win) {
                 titleEl.innerText = "Splendid!";
-                msgEl.innerText = `You found the color!`;
+                msgEl.innerText = `You found the color in ${currentRow + 1}!`;
             } else {
                 titleEl.innerText = "Game Over";
                 msgEl.innerText = `The exact color was #${targetHex}`;
             }
         }
 
-        function endGame(win, finalAccuracy) {
+        function endGame(win) {
             gameOver = true;
             
             stats.played++;
-            stats.totalAccuracy += finalAccuracy; // Add to running total for average calculation
+            const sum = sessionAccuracies.reduce((a, b) => a + b, 0);
+            const gameAvg = sum / sessionAccuracies.length;
+            stats.totalAccuracy += gameAvg; // Track total average for historical stats
 
             if (win) {
                 stats.won++;
@@ -775,7 +763,6 @@
             document.getElementById("stats-modal").style.display = "none";
         });
 
-        // Theme Toggle Logic
         const themeBtn = document.getElementById("theme-btn");
         const savedTheme = localStorage.getItem("hexleTheme") || "dark";
         if (savedTheme === "light") {
@@ -794,7 +781,6 @@
             }
         });
 
-        // Start game on load
         window.onload = initGame;
     </script>
 </body>
