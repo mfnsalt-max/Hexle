@@ -351,6 +351,9 @@
                 <li>🔢 <b>Blue Badge:</b> That character appears multiple times!</li>
                 <li>🎯 <b>Accuracy Score:</b> A percentage showing how close your guess's RGB values are to the target color.</li>
             </ul>
+            <hr style="margin: 15px 0;">
+            <h3 style="margin: 0 0 10px 0; font-size: 1.1rem; text-align: center;">What is a Hex Code?</h3>
+            <p style="font-size: 0.9rem; line-height: 1.4; margin: 0;">Hex codes use 6 characters to make colors by mixing <b>R</b>ed, <b>G</b>reen, and <b>B</b>lue (RRGGBB).<br><br>Values range from <b>00</b> (darkest/none) to <b>FF</b> (brightest/full).<br><i>Example: FF0000 is pure Red!</i></p>
         </div>
     </div>
 
@@ -359,6 +362,7 @@
         <div class="modal-content">
             <button class="close-btn" id="close-stats-btn">✖</button>
             <h2 id="modal-title"></h2>
+            <div id="modal-score" style="display: none; font-size: 2rem; font-weight: bold; color: #538d4e; margin: 10px 0;"></div>
             
             <div class="stats-container">
                 <div class="stat-box"><div class="stat-num" id="stat-played">0</div><div class="stat-label">Played</div></div>
@@ -699,13 +703,25 @@
 
             const titleEl = document.getElementById("modal-title");
             const msgEl = document.getElementById("modal-message");
+            const scoreEl = document.getElementById("modal-score");
 
             if (win) {
                 titleEl.innerText = "Splendid!";
                 msgEl.innerText = `You found the color in ${currentRow + 1}!`;
+                
+                // Calculate total score out of 1000
+                // Accuracy is worth up to 600 points, Guesses are worth up to 400 points
+                const guesses = currentRow + 1;
+                const accPoints = (gameAvg / 100) * 600;
+                const guessPoints = 400 - ((guesses - 1) * 50);
+                const score = Math.round(accPoints + guessPoints);
+                
+                scoreEl.innerText = `Score: ${score} / 1000`;
+                scoreEl.style.display = "block";
             } else {
                 titleEl.innerText = "Game Over";
                 msgEl.innerText = `The exact color was #${targetHex}`;
+                scoreEl.style.display = "none";
             }
         }
 
@@ -741,7 +757,11 @@
             
             const key = e.key.toUpperCase();
             if (key === 'ENTER') {
-                handleKey('ENTER');
+                if (gameOver && document.getElementById("stats-modal").style.display === "flex") {
+                    initGame();
+                } else {
+                    handleKey('ENTER');
+                }
             } else if (key === 'BACKSPACE' || key === 'DELETE') {
                 handleKey('BACKSPACE');
             } else if (/^[0-9A-F]$/.test(key)) {
